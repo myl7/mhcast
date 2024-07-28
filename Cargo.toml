@@ -1,0 +1,7 @@
+[package]
+name = "mhcast"
+version = "0.1.0"
+edition = "2021"
+authors = ["myl7 <myl@myl.moe>"]
+
+[dependencies]
