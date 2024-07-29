@@ -5,7 +5,11 @@ edition = "2021"
 authors = ["myl7 <myl@myl.moe>"]
 
 [dependencies]
+bitvec = "1.0.1"
 fss-rs = { path = "../fss" }
+num = "0.4.3"
+rand = { version = "0.8.5", features = ["std", "std_rng"] }
+rayon = "1.10.0"
 
 [dev-dependencies]
 arbtest = "0.3.1"
