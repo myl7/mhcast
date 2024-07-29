@@ -5,3 +5,7 @@ edition = "2021"
 authors = ["myl7 <myl@myl.moe>"]
 
 [dependencies]
+fss-rs = { path = "../fss" }
+
+[dev-dependencies]
+arbtest = "0.3.1"
