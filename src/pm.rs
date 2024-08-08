@@ -12,27 +12,19 @@ impl PmapSparse {
     // Inclusive interval to avoid int overflow.
     // `elem_num` is between `$2^10$` and `$2^20$` in the experiment.
     pub fn new_from_all_map((l, r): (u32, u32), ys: &[u32], elem_num: u32) -> Self {
-        assert_eq!((r - l + 1) as usize, ys.len());
+        assert_eq!((r - l - 1) as usize, ys.len());
 
-        let mut y_idxs = ys.to_vec();
-        y_idxs.shuffle(&mut thread_rng());
-        let mut other_idxs: Vec<_> = (0..elem_num).filter(|&x| !y_idxs.contains(&x)).collect();
-        other_idxs.shuffle(&mut thread_rng());
+        let mut v: Vec<_> = (0..=l).chain(r..=elem_num).collect();
+        v.shuffle(&mut thread_rng());
+        let mut r = ys.to_vec();
+        r.shuffle(&mut thread_rng());
+        v.splice((l + 1) as usize..(l + 1) as usize, r);
 
-        let mut idxs = vec![0; elem_num as usize];
-        let mut other_iter = other_idxs.iter();
-        (0..l).for_each(|x| {
-            idxs[x as usize] = *other_iter.next().unwrap();
-        });
-        (l..=r).zip(y_idxs.iter()).for_each(|(x, &y)| {
-            idxs[x as usize] = y;
-        });
-        ((r + 1)..elem_num).for_each(|x| {
-            idxs[x as usize] = *other_iter.next().unwrap();
-        });
+        Self { idxs: v, elem_num }
+    }
 
-        assert_eq!(other_iter.next(), None);
-        Self { idxs, elem_num }
+    pub fn map(&self, x: u32) -> u32 {
+        self.idxs[x as usize]
     }
 }
 
