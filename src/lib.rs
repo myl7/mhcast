@@ -1,16 +1,22 @@
-mod dif;
+pub mod dif;
 mod pm;
+
+mod grpc {
+    tonic::include_proto!("mhcast");
+}
 
 use std::collections::HashMap;
 
-use group::Group;
+use group::{Group, GroupEncoding};
 use jubjub::{Fr, SubgroupPoint};
 use rand::prelude::*;
 use sha2::{Digest, Sha256};
 
-use dif::{DcfImplImpl, Dif, PrgImpl};
+use dif::Dif;
 use pm::{PmapCompact, PmapSparse};
+use tracing::info_span;
 
+#[derive(Debug)]
 pub struct SendConfig {
     pub n: u32,
     pub m: u32,
@@ -18,7 +24,10 @@ pub struct SendConfig {
     pub w: Vec<Fr>,
 }
 
-pub fn send(c: &SendConfig, m: &[u8; 1024]) {
+pub fn send(c: &SendConfig, dif: &Dif, m: &[u8; 1024]) -> (Vec<u8>, Vec<u8>) {
+    _ = info_span!("send", c.n, c.m).entered();
+
+    let pm_span = info_span!("pm").entered();
     assert_eq!(c.r.len(), c.m as usize);
 
     let al = thread_rng().gen_range(0..=c.n);
@@ -30,29 +39,25 @@ pub fn send(c: &SendConfig, m: &[u8; 1024]) {
         cache.insert(ri, (pm_s.map(ri), w));
     }
     let pm_c: PmapCompact = pm_s.clone().into();
+    let pm_bs: Vec<_> = pm_c.into();
+    drop(pm_span);
 
-    let mut keys_l = vec![[0u8; 16]; 256];
-    keys_l.iter_mut().for_each(|k| thread_rng().fill(k));
-    let mut keys_r = vec![[0u8; 16]; 256];
-    keys_r.iter_mut().for_each(|k| thread_rng().fill(k));
-    let prg_l = PrgImpl::new(&std::array::from_fn(|i| &keys_l[i]));
-    let prg_r = PrgImpl::new(&std::array::from_fn(|i| &keys_r[i]));
-    let filter_bitn = 17;
-    let dcf_l = DcfImplImpl::new_with_filter(prg_l, filter_bitn);
-    let dcf_r = DcfImplImpl::new_with_filter(prg_r, filter_bitn);
-    let dif = Dif(dcf_l, dcf_r);
-
+    let dif_span = info_span!("dif").entered();
     let mut s0s = vec![[0u8; 1024]; 2];
     s0s.iter_mut().for_each(|s0| thread_rng().fill(s0));
 
     let (k0, k1) = dif.gen((al, ar), m, std::array::from_fn(|i| &s0s[i]));
+    drop(dif_span);
 
-    let mut xs: Vec<u32> = (al + 1..ar).collect();
+    let dif_eval_span = info_span!("dif_eval").entered();
+    let xs: Vec<u32> = (al + 1..ar).collect();
     let mut ys0 = vec![[0u8; 1024]; c.m as usize];
     let mut ys1 = vec![[0u8; 1024]; c.m as usize];
-    dif.batch_eval(false, k0, &xs, &mut ys0);
-    dif.batch_eval(true, k1, &xs, &mut ys1);
+    dif.batch_eval(false, k0.clone(), &xs, &mut ys0);
+    dif.batch_eval(true, k1.clone(), &xs, &mut ys1);
+    drop(dif_eval_span);
 
+    let mac_span = info_span!("mac").entered();
     let ys0_fs = ys0
         .iter()
         .map(|y| {
@@ -81,4 +86,69 @@ pub fn send(c: &SendConfig, m: &[u8; 1024]) {
     let t = SubgroupPoint::generator() * ys_sum_mac;
     let t0 = SubgroupPoint::random(&mut thread_rng());
     let t1 = t - t0;
+    let t0_bs = t0.to_bytes().to_vec();
+    let t1_bs = t1.to_bytes().to_vec();
+    drop(mac_span);
+
+    let multicast0 = grpc::Multicast {
+        share: Some(grpc::DifShare {
+            s0: k0.s0s[0].to_vec(),
+            cws_l: k0
+                .cws_l
+                .iter()
+                .map(|cw| grpc::Cw {
+                    s: cw.s.to_vec(),
+                    v: cw.v.to_vec(),
+                    tl: cw.tl,
+                    tr: cw.tr,
+                })
+                .collect(),
+            cw_np1_l: k0.cw_np1_l.to_vec(),
+            cws_r: k0
+                .cws_r
+                .iter()
+                .map(|cw| grpc::Cw {
+                    s: cw.s.to_vec(),
+                    v: cw.v.to_vec(),
+                    tl: cw.tl,
+                    tr: cw.tr,
+                })
+                .collect(),
+            cw_np1_r: k0.cw_np1_r.to_vec(),
+        }),
+        pm: pm_bs.clone(),
+        mac_share: t0_bs,
+    };
+    let multicast0_bs = prost::Message::encode_to_vec(&multicast0);
+    let multicast1 = grpc::Multicast {
+        share: Some(grpc::DifShare {
+            s0: k1.s0s[0].to_vec(),
+            cws_l: k1
+                .cws_l
+                .iter()
+                .map(|cw| grpc::Cw {
+                    s: cw.s.to_vec(),
+                    v: cw.v.to_vec(),
+                    tl: cw.tl,
+                    tr: cw.tr,
+                })
+                .collect(),
+            cw_np1_l: k1.cw_np1_l.to_vec(),
+            cws_r: k1
+                .cws_r
+                .iter()
+                .map(|cw| grpc::Cw {
+                    s: cw.s.to_vec(),
+                    v: cw.v.to_vec(),
+                    tl: cw.tl,
+                    tr: cw.tr,
+                })
+                .collect(),
+            cw_np1_r: k1.cw_np1_r.to_vec(),
+        }),
+        pm: pm_bs,
+        mac_share: t1_bs,
+    };
+    let multicast1_bs = prost::Message::encode_to_vec(&multicast1);
+    (multicast0_bs, multicast1_bs)
 }

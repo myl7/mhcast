@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package mhcast;
+
+message Multicast {
+  DIFShare share = 1;
+  bytes pm = 2;
+  bytes macShare = 3;
+}
+
+message DIFShare {
+  bytes s0 = 1;
+  repeated CW cwsL = 2;
+  bytes cwNp1L = 3;
+  repeated CW cwsR = 4;
+  bytes cwNp1R = 5;
+}
+
+message CW {
+  bytes s = 1;
+  bytes v = 2;
+  bool tl = 3;
+  bool tr = 4;
+}
