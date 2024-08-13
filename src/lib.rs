@@ -1,15 +1,17 @@
 pub mod dif;
-mod pm;
+pub mod pm;
 
-mod grpc {
+pub mod grpc {
     tonic::include_proto!("mhcast");
 }
 
 use std::collections::HashMap;
+use std::hint::black_box;
 
 use group::{Group, GroupEncoding};
 use jubjub::{Fr, SubgroupPoint};
 use rand::prelude::*;
+use rayon::prelude::*;
 use sha2::{Digest, Sha256};
 
 use dif::Dif;
@@ -24,8 +26,15 @@ pub struct SendConfig {
     pub w: Vec<Fr>,
 }
 
+#[derive(Debug)]
+pub struct WriteConfig {
+    pub b: bool,
+    pub n: u32,
+    pub gw: Vec<SubgroupPoint>,
+}
+
 pub fn send(c: &SendConfig, dif: &Dif, m: &[u8; 1024]) -> (Vec<u8>, Vec<u8>) {
-    _ = info_span!("send", c.n, c.m).entered();
+    let send_span = info_span!("send", c.n, c.m).entered();
 
     let pm_span = info_span!("pm").entered();
     assert_eq!(c.r.len(), c.m as usize);
@@ -58,15 +67,15 @@ pub fn send(c: &SendConfig, dif: &Dif, m: &[u8; 1024]) -> (Vec<u8>, Vec<u8>) {
     drop(dif_eval_span);
 
     let mac_span = info_span!("mac").entered();
-    let ys0_fs = ys0
+    let ys0_fs: Vec<_> = ys0
         .iter()
         .map(|y| {
             let mut bs = vec![0; 64];
             bs[..32].copy_from_slice(Sha256::digest(y).as_slice());
             Fr::from_bytes_wide(bs.as_slice().try_into().unwrap())
         })
-        .collect::<Vec<_>>();
-    let ys1_fs = ys0
+        .collect();
+    let ys1_fs: Vec<_> = ys0
         .iter()
         .map(|y| {
             let mut bs = vec![0; 64];
@@ -74,7 +83,7 @@ pub fn send(c: &SendConfig, dif: &Dif, m: &[u8; 1024]) -> (Vec<u8>, Vec<u8>) {
             // Neg is important.
             -Fr::from_bytes_wide(bs.as_slice().try_into().unwrap())
         })
-        .collect::<Vec<_>>();
+        .collect();
     let ys_mac: Vec<_> = ys0_fs
         .iter()
         .zip(ys1_fs.iter())
@@ -150,5 +159,84 @@ pub fn send(c: &SendConfig, dif: &Dif, m: &[u8; 1024]) -> (Vec<u8>, Vec<u8>) {
         mac_share: t1_bs,
     };
     let multicast1_bs = prost::Message::encode_to_vec(&multicast1);
+
+    drop(send_span);
     (multicast0_bs, multicast1_bs)
+}
+
+pub fn write(c: &WriteConfig, dif: &Dif, msg: grpc::Multicast) -> Vec<[u8; 1024]> {
+    let write_span = info_span!("write", c.n).entered();
+
+    let grpc::Multicast {
+        share: share_opt,
+        pm,
+        mac_share,
+    } = msg;
+    let elem_num = c.n;
+    let elem_bitlen = elem_num.next_power_of_two().trailing_zeros();
+    let pm_c: PmapCompact = (pm, elem_num, elem_bitlen).into();
+    let share = {
+        let share = share_opt.unwrap();
+        let grpc::DifShare {
+            s0,
+            cws_l,
+            cw_np1_l,
+            cws_r,
+            cw_np1_r,
+        } = share;
+        dif::DifShare {
+            s0s: vec![s0.try_into().unwrap()],
+            cws_l: cws_l
+                .into_iter()
+                .map(|cw| dif::DifCw {
+                    s: cw.s.try_into().unwrap(),
+                    v: cw.v.try_into().unwrap(),
+                    tl: cw.tl,
+                    tr: cw.tr,
+                })
+                .collect(),
+            cw_np1_l: cw_np1_l.try_into().unwrap(),
+            cws_r: cws_r
+                .into_iter()
+                .map(|cw| dif::DifCw {
+                    s: cw.s.try_into().unwrap(),
+                    v: cw.v.try_into().unwrap(),
+                    tl: cw.tl,
+                    tr: cw.tr,
+                })
+                .collect(),
+            cw_np1_r: cw_np1_r.try_into().unwrap(),
+        }
+    };
+    let t = SubgroupPoint::from_bytes(&mac_share.try_into().unwrap()).unwrap();
+
+    let dif_eval_span = info_span!("dif_eval").entered();
+    let mut ys = vec![[0; 1024]; elem_num.next_power_of_two() as usize];
+    dif.full_eval(c.b, share, &mut ys);
+    drop(dif_eval_span);
+
+    let mac_span = info_span!("mac").entered();
+    let ys_fr: Vec<_> = ys
+        .par_iter()
+        .enumerate()
+        .map(|(_i, y)| {
+            let mut bs = vec![0; 64];
+            bs[..32].copy_from_slice(Sha256::digest(y).as_slice());
+            let y_fr = Fr::from_bytes_wide(bs.as_slice().try_into().unwrap());
+            y_fr
+        })
+        .collect();
+    let y_points: Vec<_> = ys_fr
+        .par_iter()
+        .enumerate()
+        .map(|(i, y_fr)| c.gw[pm_c.map(i as u32) as usize] * y_fr)
+        .collect();
+    let point_sum: SubgroupPoint = y_points.into_iter().sum();
+    let beta = point_sum - t;
+    let beta_other = black_box(-beta);
+    assert_eq!(beta + beta_other, SubgroupPoint::identity());
+    drop(mac_span);
+
+    drop(write_span);
+    ys
 }

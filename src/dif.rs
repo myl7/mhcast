@@ -51,10 +51,12 @@ impl Dif {
         let mut ys_iter: Vec<_> = ys_buf.iter_mut().collect();
         let (kl, kr) = k.into();
         self.0.full_eval(b, &kl, &mut ys_iter);
+        drop(kl);
         ys_iter.iter().zip(ys.iter_mut()).for_each(|(y_iter, y)| {
             *y = (*y_iter).clone().into();
         });
         self.1.full_eval(b, &kr, &mut ys_iter);
+        drop(kr);
         ys_iter.iter().zip(ys.iter_mut()).for_each(|(y_iter, y)| {
             xor_inplace(y, &[&((*y_iter).clone().into())]);
         });

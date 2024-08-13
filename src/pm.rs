@@ -62,7 +62,6 @@ impl From<PmapSparse> for PmapCompact {
         bvec.resize((value.elem_num * elem_bitlen) as usize, false);
         Self {
             idxs: bvec,
-            elem_num: value.elem_num,
             elem_bitlen,
         }
     }
@@ -71,7 +70,6 @@ impl From<PmapSparse> for PmapCompact {
 #[derive(Clone)]
 pub struct PmapCompact {
     idxs: BitVec<u32>,
-    elem_num: u32,
     elem_bitlen: u32,
 }
 
@@ -98,7 +96,6 @@ impl From<(Vec<u8>, u32, u32)> for PmapCompact {
         bvec.resize(bitlen, false);
         Self {
             idxs: bvec,
-            elem_num,
             elem_bitlen,
         }
     }
@@ -115,28 +112,22 @@ impl PmapCompact {
 
 #[cfg(test)]
 mod tests {
-    use arbtest::arbtest;
-
     use super::*;
 
     #[test]
     fn test_map() {
-        arbtest(|u| {
-            let l: u32 = 100;
-            let r: u32 = 199;
+        let l: u32 = 100;
+        let r: u32 = 199;
 
-            let ys = (l..=r).collect::<Vec<_>>();
-            let elem_num = 2u32.pow(20);
-            let pmap_sparse = PmapSparse::new_from_all_map((l, r), &ys, elem_num);
-            let pmap_compact0: PmapCompact = pmap_sparse.clone().into();
-            let bs: Vec<u8> = pmap_compact0.clone().into();
+        let ys = (l..=r).collect::<Vec<_>>();
+        let elem_num = 2u32.pow(20);
+        let pmap_sparse = PmapSparse::new_from_all_map((l, r), &ys, elem_num);
+        let pmap_compact0: PmapCompact = pmap_sparse.clone().into();
+        let bs: Vec<u8> = pmap_compact0.clone().into();
 
-            let pmap_compact1: PmapCompact = (bs, elem_num, pmap_compact0.elem_bitlen).into();
-            for x in 0..elem_num {
-                assert_eq!(pmap_compact0.map(x), pmap_compact1.map(x));
-            }
-
-            Ok(())
-        });
+        let pmap_compact1: PmapCompact = (bs, elem_num, pmap_compact0.elem_bitlen).into();
+        for x in 0..elem_num {
+            assert_eq!(pmap_compact0.map(x), pmap_compact1.map(x));
+        }
     }
 }
