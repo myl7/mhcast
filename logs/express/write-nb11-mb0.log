@@ -1,36 +1,36 @@
-dif eval: 22.503518ms
-audit: 81.085µs
-write: 29.693343ms
-dif eval: 23.405675ms
-audit: 86.394µs
-write: 31.451322ms
-dif eval: 22.182967ms
-audit: 94.356µs
-write: 29.258721ms
-dif eval: 21.765273ms
-audit: 78.572µs
-write: 29.063582ms
-dif eval: 22.267396ms
-audit: 99.314µs
-write: 29.088098ms
-dif eval: 21.840378ms
-audit: 80.945µs
-write: 28.91112ms
-dif eval: 22.064507ms
-audit: 83.879µs
-write: 28.861531ms
-dif eval: 21.958363ms
-audit: 80.109µs
-write: 29.204174ms
-dif eval: 22.135517ms
-audit: 83.81µs
-write: 28.892403ms
-dif eval: 21.630653ms
-audit: 85.836µs
-write: 28.40854ms
-dif eval: 21.707602ms
-audit: 84.928µs
-write: 28.446813ms
+dpf eval: 10.628122ms
+audit: 30.831434ms
+write: 42.568078ms
+dpf eval: 10.810408ms
+audit: 30.64419ms
+write: 41.64254ms
+dpf eval: 11.356218ms
+audit: 30.774653ms
+write: 42.3339ms
+dpf eval: 10.439479ms
+audit: 31.209835ms
+write: 41.855277ms
+dpf eval: 9.693014ms
+audit: 30.688469ms
+write: 40.579274ms
+dpf eval: 9.329769ms
+audit: 31.414051ms
+write: 40.904805ms
+dpf eval: 11.166179ms
+audit: 30.724646ms
+write: 42.080306ms
+dpf eval: 10.21026ms
+audit: 30.654875ms
+write: 41.031986ms
+dpf eval: 10.091599ms
+audit: 30.88591ms
+write: 41.273149ms
+dpf eval: 10.208654ms
+audit: 31.404413ms
+write: 42.071715ms
+dpf eval: 11.092916ms
+audit: 30.724576ms
+write: 42.039799ms
 
 
 
