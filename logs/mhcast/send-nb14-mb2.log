@@ -1,0 +1,35 @@
+pm: 1.159299ms
+dif gen: 96.381µs
+dif eval: 279.226µs
+mac: 186.617µs
+send: 1.897385ms
+multicast size: 178882B
+
+pm: 1.189401ms
+dif gen: 121.594µs
+dif eval: 321.76µs
+mac: 224.68µs
+send: 2.030013ms
+multicast size: 178898B
+
+pm: 1.08841ms
+dif gen: 143.525µs
+dif eval: 282.439µs
+mac: 202.401µs
+send: 1.88174ms
+multicast size: 178890B
+
+pm: 1.274608ms
+dif gen: 131.232µs
+dif eval: 293.753µs
+mac: 236.064µs
+send: 2.097132ms
+multicast size: 178898B
+
+pm: 1.243458ms
+dif gen: 127.251µs
+dif eval: 324.274µs
+mac: 182.706µs
+send: 2.047544ms
+multicast size: 178922B
+

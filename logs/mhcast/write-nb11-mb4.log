@@ -1,0 +1,20 @@
+dif eval: 2.200915ms
+mac: 30.145064ms
+write: 32.572965ms
+
+dif eval: 1.911632ms
+mac: 29.61832ms
+write: 31.731654ms
+
+dif eval: 2.303094ms
+mac: 30.842712ms
+write: 33.373699ms
+
+dif eval: 1.930839ms
+mac: 29.742917ms
+write: 31.899275ms
+
+dif eval: 1.955144ms
+mac: 29.527665ms
+write: 31.696315ms
+
