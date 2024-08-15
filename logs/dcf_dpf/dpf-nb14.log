@@ -1,0 +1,33 @@
+dpf eval: 88.918193ms
+audit: 31.789572ms
+write: 120.917357ms
+dpf eval: 87.461307ms
+audit: 31.383237ms
+write: 119.03486ms
+dpf eval: 78.462911ms
+audit: 31.373529ms
+write: 110.025988ms
+dpf eval: 84.403873ms
+audit: 31.538004ms
+write: 116.12535ms
+dpf eval: 89.403518ms
+audit: 31.284412ms
+write: 120.856806ms
+dpf eval: 79.305613ms
+audit: 32.04135ms
+write: 111.5854ms
+dpf eval: 78.127744ms
+audit: 31.765687ms
+write: 112.901766ms
+dpf eval: 82.462291ms
+audit: 31.898734ms
+write: 114.70164ms
+dpf eval: 83.666072ms
+audit: 31.756188ms
+write: 115.609086ms
+dpf eval: 83.233268ms
+audit: 31.305224ms
+write: 114.723781ms
+dpf eval: 76.003038ms
+audit: 31.440646ms
+write: 107.662008ms
