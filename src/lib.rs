@@ -7,6 +7,7 @@ pub mod grpc {
 
 use std::collections::HashMap;
 use std::hint::black_box;
+use std::time::Instant;
 
 use group::{Group, GroupEncoding};
 use jubjub::{Fr, SubgroupPoint};
@@ -16,7 +17,6 @@ use sha2::{Digest, Sha256};
 
 use dif::Dif;
 use pm::{PmapCompact, PmapSparse};
-use tracing::info_span;
 
 #[derive(Debug)]
 pub struct SendConfig {
@@ -34,9 +34,9 @@ pub struct WriteConfig {
 }
 
 pub fn send(c: &SendConfig, dif: &Dif, m: &[u8; 1024]) -> (Vec<u8>, Vec<u8>) {
-    let send_span = info_span!("send", c.n, c.m).entered();
+    let send_start = Instant::now();
 
-    let pm_span = info_span!("pm").entered();
+    let pm_start = Instant::now();
     assert_eq!(c.r.len(), c.m as usize);
 
     let al = thread_rng().gen_range(0..=c.n);
@@ -49,24 +49,24 @@ pub fn send(c: &SendConfig, dif: &Dif, m: &[u8; 1024]) -> (Vec<u8>, Vec<u8>) {
     }
     let pm_c: PmapCompact = pm_s.clone().into();
     let pm_bs: Vec<_> = pm_c.into();
-    drop(pm_span);
+    println!("pm: {:?}", pm_start.elapsed());
 
-    let dif_span = info_span!("dif").entered();
+    let dif_gen_start = Instant::now();
     let mut s0s = vec![[0u8; 1024]; 2];
     s0s.iter_mut().for_each(|s0| thread_rng().fill(s0));
 
     let (k0, k1) = dif.gen((al, ar), m, std::array::from_fn(|i| &s0s[i]));
-    drop(dif_span);
+    println!("dif gen: {:?}", dif_gen_start.elapsed());
 
-    let dif_eval_span = info_span!("dif_eval").entered();
+    let dif_eval_start = Instant::now();
     let xs: Vec<u32> = (al + 1..ar).collect();
     let mut ys0 = vec![[0u8; 1024]; c.m as usize];
     let mut ys1 = vec![[0u8; 1024]; c.m as usize];
     dif.batch_eval(false, k0.clone(), &xs, &mut ys0);
     dif.batch_eval(true, k1.clone(), &xs, &mut ys1);
-    drop(dif_eval_span);
+    println!("dif eval: {:?}", dif_eval_start.elapsed());
 
-    let mac_span = info_span!("mac").entered();
+    let mac_start = Instant::now();
     let ys0_fs: Vec<_> = ys0
         .iter()
         .map(|y| {
@@ -97,7 +97,7 @@ pub fn send(c: &SendConfig, dif: &Dif, m: &[u8; 1024]) -> (Vec<u8>, Vec<u8>) {
     let t1 = t - t0;
     let t0_bs = t0.to_bytes().to_vec();
     let t1_bs = t1.to_bytes().to_vec();
-    drop(mac_span);
+    println!("mac: {:?}", mac_start.elapsed());
 
     let multicast0 = grpc::Multicast {
         share: Some(grpc::DifShare {
@@ -160,12 +160,12 @@ pub fn send(c: &SendConfig, dif: &Dif, m: &[u8; 1024]) -> (Vec<u8>, Vec<u8>) {
     };
     let multicast1_bs = prost::Message::encode_to_vec(&multicast1);
 
-    drop(send_span);
+    println!("send: {:?}", send_start.elapsed());
     (multicast0_bs, multicast1_bs)
 }
 
 pub fn write(c: &WriteConfig, dif: &Dif, msg: grpc::Multicast) -> Vec<[u8; 1024]> {
-    let write_span = info_span!("write", c.n).entered();
+    let write_start = Instant::now();
 
     let grpc::Multicast {
         share: share_opt,
@@ -210,12 +210,12 @@ pub fn write(c: &WriteConfig, dif: &Dif, msg: grpc::Multicast) -> Vec<[u8; 1024]
     };
     let t = SubgroupPoint::from_bytes(&mac_share.try_into().unwrap()).unwrap();
 
-    let dif_eval_span = info_span!("dif_eval").entered();
+    let dif_eval_start = Instant::now();
     let mut ys = vec![[0; 1024]; elem_num.next_power_of_two() as usize];
     dif.full_eval(c.b, share, &mut ys);
-    drop(dif_eval_span);
+    println!("dif eval: {:?}", dif_eval_start.elapsed());
 
-    let mac_span = info_span!("mac").entered();
+    let mac_start = Instant::now();
     let ys_fr: Vec<_> = ys
         .par_iter()
         .enumerate()
@@ -235,8 +235,8 @@ pub fn write(c: &WriteConfig, dif: &Dif, msg: grpc::Multicast) -> Vec<[u8; 1024]
     let beta = point_sum - t;
     let beta_other = black_box(-beta);
     assert_eq!(beta + beta_other, SubgroupPoint::identity());
-    drop(mac_span);
+    println!("mac: {:?}", mac_start.elapsed());
 
-    drop(write_span);
+    println!("write: {:?}", write_start.elapsed());
     ys
 }

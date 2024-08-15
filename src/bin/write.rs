@@ -8,8 +8,6 @@ use jubjub::SubgroupPoint;
 use prost::Message;
 use rand::prelude::*;
 use rayon::prelude::*;
-use tracing::info_span;
-use tracing_subscriber::fmt::format::FmtSpan;
 
 use mhcast::{
     dif::{DcfImplImpl, Dif, PrgImpl},
@@ -23,19 +21,7 @@ type Aes128Ctr64LE = Ctr64LE<Aes128>;
 const KEY: [u8; 16] = [1; 16];
 const IV: [u8; 16] = [2; 16];
 
-// fn enc(cipher: &mut Aes128Ctr64LE, buf: &mut [u8; 1024]) {
-//     cipher.apply_keystream(&mut buf[..]);
-// }
-
-// fn dec(cipher: &mut Aes128Ctr64LE, buf: &mut [u8; 1024]) {
-//     cipher.apply_keystream(&mut buf[..]);
-// }
-
 fn main() {
-    tracing_subscriber::fmt()
-        .with_span_events(FmtSpan::CLOSE)
-        .init();
-
     let filter_bitn: usize = env::var("NB").unwrap().parse().unwrap();
     let mut mailboxes = vec![
         ([0u8; 1024], Aes128Ctr64LE::new(&KEY.into(), &IV.into()));
@@ -45,7 +31,6 @@ fn main() {
         // enc(&mut mailbox.1, &mut mailbox.0);
     });
 
-    let dif_init_span = info_span!("dif_init").entered();
     let mut keys_l = vec![[0u8; 16]; 256];
     keys_l.iter_mut().for_each(|k| thread_rng().fill(k));
     let mut keys_r = vec![[0u8; 16]; 256];
@@ -55,7 +40,6 @@ fn main() {
     let dcf_l = DcfImplImpl::new_with_filter(prg_l, filter_bitn);
     let dcf_r = DcfImplImpl::new_with_filter(prg_r, filter_bitn);
     let dif = Dif(dcf_l, dcf_r);
-    drop(dif_init_span);
 
     let multicast_bs = fs::read("multicast0.bin").unwrap();
     let multicast = grpc::Multicast::decode(multicast_bs.as_slice()).unwrap();
@@ -78,14 +62,10 @@ fn main() {
         multicast,
     );
 
-    // let reenc_span = info_span!("reenc").entered();
     mailboxes
         .par_iter_mut()
         .enumerate()
         .for_each(|(i, mailbox)| {
-            // dec(&mut mailbox.1, &mut mailbox.0);
             xor_inplace(&mut mailbox.0, &[&ys[pm_c.map(i as u32) as usize]]);
-            // enc(&mut mailbox.1, &mut mailbox.0);
         });
-    // drop(reenc_span);
 }
