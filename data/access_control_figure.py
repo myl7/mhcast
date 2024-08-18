@@ -9,9 +9,9 @@ x_pos = np.arange(len(xs))
 
 with open("data/part_time.json", "r") as f:
     data = json.load(f)
-    mhcast_rows = np.array(data["mhcast_dif"])
-    spectrum_rows = np.array(data["spectrum_dpf"])
-    express_rows = np.array(data["express_dpf"])
+    mhcast_rows = np.array(data["mhcast_mac"])
+    spectrum_rows = np.array(data["spectrum_audit"])
+    express_rows = np.array(data["express_audit"])
 
 plt.figure(figsize=(16, 4))
 
@@ -26,7 +26,7 @@ for i in range(3):
     axes.legend()
     axes.title.set_text(f"Mailboxes: {2 ** (11 + i * 3)}")
     axes.xaxis.label.set_text("Recipient group size")
-    axes.yaxis.label.set_text("Multicast time (sec)")
+    axes.yaxis.label.set_text("Access control / audit time (sec)")
 
 plt.tight_layout()
 plt.show()
