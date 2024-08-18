@@ -161,6 +161,15 @@ pub fn send(c: &SendConfig, dif: &Dif, m: &[u8; 1024]) -> (Vec<u8>, Vec<u8>) {
     let multicast1_bs = prost::Message::encode_to_vec(&multicast1);
 
     println!("send: {:?}", send_start.elapsed());
+
+    let mut multicast1_no_pm = multicast1.clone();
+    multicast1_no_pm.pm.clear();
+    let multicast1_no_pm_bs = prost::Message::encode_to_vec(&multicast1_no_pm);
+    println!(
+        "multicast without public mapping size: {}B",
+        multicast1_no_pm_bs.len()
+    );
+
     (multicast0_bs, multicast1_bs)
 }
 
@@ -238,5 +247,6 @@ pub fn write(c: &WriteConfig, dif: &Dif, msg: grpc::Multicast) -> Vec<[u8; 1024]
     println!("mac: {:?}", mac_start.elapsed());
 
     println!("write: {:?}", write_start.elapsed());
+    println!("beta size: {}B", beta_other.to_bytes().len());
     ys
 }
