@@ -11,6 +11,8 @@ def str_to_time_s(s: str) -> float:
         return float(s[:-1])
     elif s[-2] == "m":
         return float(s[:-2]) / 1000
+    elif s[-2] == "n":
+        return float(s[:-2]) / 1000_000_000
     else:
         raise ValueError("Invalid time format")
 
@@ -44,6 +46,17 @@ def preprocess_express(p: str) -> float:
     return throughput
 
 
+def preprocess_talek(p: str) -> float:
+    with open(p, "r") as f:
+        body = f.read()
+        time_m = re.search(r"(\d+) ns\/op", body)
+        assert time_m is not None
+        time_s = time_m.group(1) + "ns"
+        time = str_to_time_s(time_s)
+    throughput = 1 / time
+    return throughput
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         data = {}
@@ -66,6 +79,12 @@ if __name__ == "__main__":
         tss = [ts[0:6], ts[6:12], ts[12:18]]
         data["express"] = tss
 
+        fs = glob.glob("logs/talek/write-*.log")
+        fs.sort()
+        ts = [preprocess_talek(f) for f in fs]
+        tss = [ts[0:6], ts[6:12], [ts[12] for _ in range(6)]]
+        data["talek"] = tss
+
         with open("data/throughput.json", "w") as f:
             json.dump(data, f)
     elif sys.argv[1] == "mhcast":
@@ -82,6 +101,11 @@ if __name__ == "__main__":
         fs = glob.glob("logs/express/write-*.log")
         fs.sort()
         ts = [preprocess_express(f) for f in fs]
+        print(ts)
+    elif sys.argv[1] == "talek":
+        fs = glob.glob("logs/talek/write-*.log")
+        fs.sort()
+        ts = [preprocess_talek(f) for f in fs]
         print(ts)
     else:
         print("Invalid argument")

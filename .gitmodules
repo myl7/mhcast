@@ -4,3 +4,6 @@
 [submodule "third_party/express"]
 	path = third_party/express
 	url = git@github.com:myl7/express.git
+[submodule "third_party/talek"]
+	path = third_party/talek
+	url = git@github.com:myl7/talek.git
