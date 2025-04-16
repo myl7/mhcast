@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package mhcast;
+
+option go_package = "github.com/myl7/mhcast";
+
+message Msg {
+  int64 id = 1;
+  bytes s0 = 2;
+  bytes cws_l = 3;
+  bytes cw_np1_l = 4;
+  bytes cws_r = 5;
+  bytes cw_np1_r = 6;
+  bytes pm = 7;
+  bytes t = 8;
+}
+
+message WriteResp { int32 ret = 1; }
+
+message Commit {
+  int64 id = 1;
+  bytes beta = 2;
+}
+
+message CommitResp {}
+
+service Mhcast {
+  rpc Write(Msg) returns (WriteResp);
+  rpc ShareCommit(Commit) returns (CommitResp);
+}

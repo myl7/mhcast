@@ -1,0 +1,7 @@
+---
+description: 
+globs: *.go
+alwaysApply: false
+---
+If a func implements a user-given interface, add a comment like:
+`// [func name] impl [interface name]`

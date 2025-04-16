@@ -1,0 +1,5 @@
+{
+  "server0_addr": "127.0.0.1:8000",
+  "server1_addr": "127.0.0.1:8001",
+  "alpha_bitlen": 17
+}
