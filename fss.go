@@ -2,10 +2,10 @@ package mhcast
 
 /*
 #cgo CFLAGS: -I${SRCDIR}/third_party/fss/include
-#cgo LDFLAGS: -L${SRCDIR}/third_party/fss/build -ldcf -lcw_mac_bytes -lgomp -lsodium
+#cgo LDFLAGS: -L${SRCDIR}/third_party/fss/build -ldcf -lcw_mac_bytes -lgroup_bytes -lprg_aes_mmo_ni -lgomp -lsodium
 #include <dcf.h>
 #include <cw_mac_bytes.h>
-#include "prg.h"
+#include <fss_decl.h>
 */
 import "C"
 
