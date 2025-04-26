@@ -1,7 +1,0 @@
-pm: 2.30499ms
-dif gen: 269.716µs
-dif eval: 198.162µs
-mac: 340.169µs
-send: 3.617816ms
-multicast without public mapping size: 48427B
-multicast size: 102492B
