@@ -1,0 +1,95 @@
+ubuntu@ip-172-31-6-165:~$ ./send -h^C
+ubuntu@ip-172-31-6-165:~$ export NB=11
+ubuntu@ip-172-31-6-165:~$ ./send -h
+
+thread 'main' panicked at src/bin/send.rs:24:38:
+called `Result::unwrap()` on an `Err` value: NotPresent
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+ubuntu@ip-172-31-6-165:~$ export MB=16
+ubuntu@ip-172-31-6-165:~$ ./send -h
+pm: 8.511687ms
+dif gen: 157.264µs
+dif eval: 752.542109ms
+mac: 250.309217ms
+send: 1.011641539s
+multicast without public mapping size: 48425B
+multicast size: 102488B
+ubuntu@ip-172-31-6-165:~$ ./write -h
+dif eval: 5.864128ms
+mac: 30.950221ms
+write: 37.065215ms
+beta size: 32B
+ubuntu@ip-172-31-6-165:~$ ./write
+dif eval: 6.509374ms
+mac: 30.851648ms
+write: 37.611028ms
+beta size: 32B
+ubuntu@ip-172-31-6-165:~$ ./write
+dif eval: 5.821873ms
+mac: 31.210384ms
+write: 37.313193ms
+beta size: 32B
+ubuntu@ip-172-31-6-165:~$ ./write
+dif eval: 5.858455ms
+mac: 30.326905ms
+write: 36.441504ms
+beta size: 32B
+ubuntu@ip-172-31-6-165:~$ export NB=14
+ubuntu@ip-172-31-6-165:~$ ./send
+pm: 9.438659ms
+dif gen: 134.551µs
+dif eval: 914.889831ms
+mac: 250.803277ms
+send: 1.175392581s
+multicast without public mapping size: 60765B
+multicast size: 178882B
+ubuntu@ip-172-31-6-165:~$ ./write
+dif eval: 32.876273ms
+mac: 230.194412ms
+write: 263.339751ms
+beta size: 32B
+ubuntu@ip-172-31-6-165:~$ ./write
+dif eval: 34.989534ms
+mac: 230.862869ms
+write: 266.137159ms
+beta size: 32B
+ubuntu@ip-172-31-6-165:~$ ./write
+dif eval: 34.332863ms
+mac: 230.944989ms
+write: 265.545088ms
+beta size: 32B
+ubuntu@ip-172-31-6-165:~$ ./write
+dif eval: 34.589337ms
+mac: 231.485136ms
+write: 266.363398ms
+beta size: 32B
+ubuntu@ip-172-31-6-165:~$ export NB=17
+ubuntu@ip-172-31-6-165:~$ ./send
+pm: 17.241033ms
+dif gen: 159.864µs
+dif eval: 1.056151872s
+mac: 250.507922ms
+send: 1.324285845s
+multicast without public mapping size: 73113B
+multicast size: 703290B
+ubuntu@ip-172-31-6-165:~$ ./write
+dif eval: 245.970701ms
+mac: 1.837374709s
+write: 2.083691068s
+beta size: 32B
+ubuntu@ip-172-31-6-165:~$ ./write
+dif eval: 244.979463ms
+mac: 1.838322443s
+write: 2.083646793s
+beta size: 32B
+ubuntu@ip-172-31-6-165:~$ ./write
+dif eval: 245.961906ms
+mac: 1.836929155s
+write: 2.083242818s
+beta size: 32B
+ubuntu@ip-172-31-6-165:~$ ./write
+dif eval: 246.010341ms
+mac: 1.838118125s
+write: 2.084465314s
+beta size: 32B
+ubuntu@ip-172-31-6-165:~$ Shared connection to 18.144.100.188 closed.

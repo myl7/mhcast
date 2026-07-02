@@ -1,0 +1,77 @@
++------------------------------------+
+| Demos                              |
++------------------------------------+
+| 1. OMD1p Detection Key Size        |
+| 2. OMR1p/OMR2p Detection Key Size  |
+| 3. OMD1p                           |
+| 4. OMR1p Single Thread             |
+| 5. OMR2p Single Thread             |
+| 6. OMR1p Two Threads               |
+| 7. OMR2p Two Threads               |
+| 8. OMR1p Four Threads              |
+| 9. OMR2p Four Threads              |
+| 10.GOMR1 Single Thread             |
+| 11.GOMR1 Two Threads               |
+| 12.GOMR1 Four Threads              |
+| 13.GOMR2 Single Thread             |
+| 14.GOMR2 Two Threads               |
+| 15.GOMR2 Four Threads              |
+| 16.GOMR1_OM Single Thread          |
+| 17.GOMR1_OM Two Threads            |
+| 18.GOMR1_OM Four Threads           |
+| 19.GOMR2_OM Single Thread          |
+| 20.GOMR2_OM Two Threads            |
+| 21.GOMR2_OM Four Threads           |
+| 22.GOMR1_OM_BFV Single Thread      |
+| 23.GOMR1_OM_BFV Two Threads        |
+| 24.GOMR1_OM_BFV Four Threads       |
+| 25.GOMR2_OM_BFV Single Thread      |
+| 26.GOMR2_OM_BFV Two Threads        |
+| 27.GOMR2_OM_BFV Four Threads       |
+| 28.GOMR1_FG Single Thread          |
+| 29.GOMR1_FG Two Threads            |
+| 30.GOMR1_FG Four Threads           |
+| 31.GOMR2_FG Single Thread          |
+| 32.GOMR2_FG Two Threads            |
+| 33.GOMR2_FG Four Threads           |
++------------------------------------+
+Finishing createDatabase
+Finishing generating sk for PVW cts
+Recipient Target ID: [ 3530 25206 43767 65031 18858 27386 50756 26629 28020 21249 12070 36401 48230 14387 27420 64698 27978 61531 16744 12603 49917 21518 52249 14257 40753 19098 64916 45611 46130 43362 19956 40337 12882 1953 16884 42898 33707 55083 41788 47709 24695 54504 5168 59059 28661 913 34315 65189 43062 429 30778 38013 21822 21196 57971 22929 8697 15693 15951 8176 1966 1935 49578 51980 42441 8805 45955 63528 58735 1556 52081 47467 24036 9325 7001 49428 57656 34501 9912 10642 25474 19044 39078 34983 43141 ]
+Expected Message Indices: [ 317 685 768 949 1760 1928 2004 2377 3352 3642 3810 3877 5597 7673 8041 9338 9634 10011 10333 11151 11541 12189 14101 14143 14474 14584 14778 15398 16203 16908 16982 18301 20428 21520 21704 22073 22961 23627 23992 24656 25810 26021 27126 27186 29652 29680 29869 30716 31840 32249 ]
+
+Sender average running time: 132832us.
+51 pertinent msg: Finishing preparing messages
+/
+| Encryption parameters :
+|   scheme: BFV
+|   poly_modulus_degree: 32768
+|   coeff_modulus size: 868 (28 + 60 + 60 + 60 + 60 + 60 + 60 + 60 + 60 + 60 + 60 + 60 + 60 + 60 + 60) bits
+|   plain_modulus: 65537
+\
+Finishing generating detection keys
+Phase 1, Core 0, Batch 0
+batchLoadRandomSeeds time: 351045 us.
+Generate Random element via AES counter total time: 10965669 us.
+ntt transform for random matrix total time: 57161111 us.
+Compression id time: 176266885 us.
+after compression id...
+batch load clue: 0 to 32768
+Average ntt plain multi: 7372
+Average ciphertext multi: 374145
+Average ciphertext multi2: 769226
+Time for operation after compression id: 1973500321 us.
+
+Detector running time load: 29167242 us.
+Detector running time multi: 2886939200 us.
+Detector running time clue poly plaintext ntt transform: 182171855 us.
+Acc slots: 5 15 5
+number of ct: 2
+Phase 2-3, Core 0, Batch 0
+
+Detector running time: 4147473590 us.
+Digest size: 852098 bytes
+317,1  685,1  768,1  949,1  1760,1  1928,1  2004,1  2377,1  3352,1  3642,1  3810,1  3877,1  5597,1  7673,1  8041,1  9338,1  9634,1  10011,1  10333,1  11151,1  11541,1  12189,1  14101,1  14143,1  14474,1  14584,1  14778,1  15398,1  16203,1  16908,1  16982,1  18301,1  20428,1  21520,1  21704,1  22073,1  22961,1  23627,1  23992,1  24656,1  25810,1  26021,1  27126,1  27186,1  29652,1  29680,1  29869,1  30716,1  31840,1  32249,1  
+
+Recipient running time: 13081us.
+Result is correct!

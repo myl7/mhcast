@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fig 4 — Multicast & access control time</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #fff; font-family: "Times New Roman", Times, serif; }
+  text { font-family: "Times New Roman", Times, serif; fill: #000; }
+  .katex { font-size: 1em; }
+</style>
+</head>
+<body>
+<div id="chart"></div>
+<script>
+const COLORS = { MHcast:"#F03E3E", Spectrum:"#1C7ED6", Express:"#2F9E44" };
+const ORDER = ["MHcast", "Spectrum", "Express"];
+const FRAME = "#333", GRID = "#e8e8e8";
+const Nexp = [11, 14, 17];
+const us = 1e6;  // microseconds -> seconds
+
+// ── Multicast time (us) ──
+const mcMhcast = [
+  [5.145846, 5.864128, 6.509374, 5.821873, 5.858455],
+  [34.116021, 32.876273, 34.989534, 34.332863, 34.589337],
+  [244.733407, 245.970701, 244.979463, 245.961906, 246.010341],
+].map(r => r.map(v => v / us));
+const mcSpectrum = [
+  [23.527587, 24.157152 * 2, 23.901477 * 4, 23.110163 * 8, 23.902056 * 16].map(v => v / 16),
+  [208.304942, 208.400053 * 2, 215.018723 * 4, 236.54003 * 8, 212.549999 * 16].map(v => v / 16),
+  [1496.008509, 1655.254209 * 2, 1599.455261 * 4, 1488.166033 * 8, 1466.206667 * 16].map(v => v / 16),
+].map(r => r.map(v => v / us));
+const mcExpress = [
+  [36.253436, 39.34214 * 2, 41.43044 * 4, 36.045401 * 8, 35.520358 * 16],
+  [351.153192, 346.862686 * 2, 353.569257 * 4, 354.358528 * 8, 344.530103 * 16],
+  [4313.930804, 4490.653314 * 2, 4598.824788 * 4, 4613.637511 * 8, 4840.407418 * 16],
+].map(r => r.map(v => v / us));
+
+// ── Access control time (us) ──
+const acMhcast = [
+  [29.659673, 30.950221, 30.851648, 31.210384, 30.326905],
+  [230.31795, 230.194412, 230.862869, 230.944989, 231.485136],
+  [1833.815127, 1837.374709, 1838.322443, 1836.929155, 1838.118125],
+].map(r => r.map(v => v / us));
+const acSpectrum = [
+  [554.991303, 556.488653 * 2, 555.23022 * 4, 555.514761 * 8, 563.569438 * 16].map(v => v / 16),
+  [3681.384067, 3666.200507 * 2, 3669.299073 * 4, 3665.820202 * 8, 3668.039065 * 16].map(v => v / 16),
+  [28641.998771, 28557.677269 * 2, 28650.189558 * 4, 28637.425566 * 8, 28572.164332 * 16].map(v => v / 16),
+].map(r => r.map(v => v / us));
+const acExpress = [
+  [226.217987 - 108, 223.315432 * 2, 221.775604 * 4, 229.574951 * 8, 228.824117 * 16],
+  [(107.895071 + 108), (108.356588 + 108) * 2, (106.856553 + 108) * 4, (109.616877 + 108) * 8, (108.296005 + 108) * 16],
+  [(121.377388 + 108), (119.952944 + 108) * 2, (119.277318 + 108) * 4, (118.946191 + 108) * 8, (117.753241 + 108) * 16],
+].map(r => r.map(v => v / us));
+
+const ROWS = [
+  { lab: ["Multicast", "time (sec)"], data: [mcMhcast, mcSpectrum, mcExpress] },
+  { lab: ["Access control", "time (sec)"], data: [acMhcast, acSpectrum, acExpress] },
+];
+
+// ── Layout ──
+const W = 880;
+const leftM = 58, rightM = 10, Gg = 40;
+const usable = W - leftM - rightM;
+const P = (usable - 2 * Gg) / 3;
+const rH = 82, rowGap = 18;
+const r0Top = 26, r0Bot = r0Top + rH;
+const r1Top = r0Bot + rowGap, r1Bot = r1Top + rH;
+const xLabelY = r1Bot + 38;
+const legendY = r1Bot + 54;
+const H = legendY + 12;
+const FS_TICK = 14, FS_YTICK = 12, FS_TITLE = 15, FS_AXIS = 14, FS_LEG = 13.5;
+
+const svg = d3.select("#chart").append("svg").attr("width", W).attr("height", H).attr("data-figure", "part-time");
+
+function mathTop(cx, topY, latex, boxW, fsize) {
+  const html = katex.renderToString(latex, { throwOnError: false });
+  const fo = svg.append("foreignObject").attr("x", cx - boxW / 2).attr("y", topY).attr("width", boxW).attr("height", fsize * 2.1).attr("overflow", "visible");
+  fo.append("xhtml:div").attr("style", `font-size:${fsize}px; width:${boxW}px; text-align:center; line-height:1;`).html(html);
+}
+function mathRight(rightX, cy, latex, fsize, boxW = 34) {
+  const html = katex.renderToString(latex, { throwOnError: false });
+  const fo = svg.append("foreignObject").attr("x", rightX - boxW).attr("y", cy - fsize * 0.62).attr("width", boxW).attr("height", fsize * 1.6).attr("overflow", "visible");
+  fo.append("xhtml:div").attr("style", `font-size:${fsize}px; width:${boxW}px; text-align:right; line-height:1;`).html(html);
+}
+function spine(x1, y1, x2, y2) {
+  svg.append("line").attr("x1", x1).attr("y1", y1).attr("x2", x2).attr("y2", y2).attr("stroke", FRAME).attr("stroke-width", 0.9);
+}
+
+function cell(x0, pTop, pBot, vals3, drawXticks, drawYlabel, ylabLines) {
+  const x1 = x0 + P;
+  const all = vals3.flat();
+  const loE = Math.floor(Math.log10(d3.min(all)));
+  const hiE = Math.ceil(Math.log10(d3.max(all)));
+  const ysc = d3.scaleLog().domain([Math.pow(10, loE), Math.pow(10, hiE)]).range([pBot, pTop]);
+
+  for (let e = loE; e <= hiE; e++) {
+    const yy = ysc(Math.pow(10, e));
+    svg.append("line").attr("x1", x0).attr("x2", x1).attr("y1", yy).attr("y2", yy).attr("stroke", GRID).attr("stroke-width", 0.6);
+    mathRight(x0 - 5, yy, `10^{${e}}`, FS_YTICK);
+  }
+  spine(x0, pTop, x0, pBot); spine(x1, pTop, x1, pBot); spine(x0, pTop, x1, pTop); spine(x0, pBot, x1, pBot);
+
+  const slice = P / 5, barW = slice * 0.24;
+  for (let g = 0; g < 5; g++) {
+    const gc = x0 + slice * (g + 0.5);
+    for (let s = 0; s < 3; s++) {
+      const v = vals3[s][g], by = ysc(v);
+      svg.append("rect").attr("x", gc - 1.5 * barW + s * barW).attr("y", by).attr("width", barW).attr("height", pBot - by)
+        .attr("fill", COLORS[ORDER[s]]).attr("stroke", "white").attr("stroke-width", 0.5).attr("data-series", ORDER[s]);
+    }
+    if (drawXticks) {
+      svg.append("line").attr("x1", gc).attr("x2", gc).attr("y1", pBot).attr("y2", pBot + 4).attr("stroke", FRAME).attr("stroke-width", 0.9);
+      mathTop(gc, pBot + 6, `2^{${g}}`, 40, FS_TICK);
+    }
+  }
+  if (drawYlabel) {
+    const yt = svg.append("g").attr("transform", `translate(15,${(pTop + pBot) / 2}) rotate(-90)`);
+    yt.append("text").attr("text-anchor", "middle").attr("y", -5).attr("font-size", FS_AXIS).text(ylabLines[0]);
+    yt.append("text").attr("text-anchor", "middle").attr("y", 9).attr("font-size", FS_AXIS).text(ylabLines[1]);
+  }
+}
+
+for (let i = 0; i < 3; i++) {
+  const x0 = leftM + i * (P + Gg);
+  cell(x0, r0Top, r0Bot, [ROWS[0].data[0][i], ROWS[0].data[1][i], ROWS[0].data[2][i]], false, i === 0, ROWS[0].lab);
+  cell(x0, r1Top, r1Bot, [ROWS[1].data[0][i], ROWS[1].data[1][i], ROWS[1].data[2][i]], true, i === 0, ROWS[1].lab);
+  mathTop((x0 + x0 + P) / 2, r0Top - 22, `N = 2^{${Nexp[i]}}`, 96, FS_TITLE);
+}
+
+svg.append("text").attr("x", W / 2).attr("y", xLabelY).attr("text-anchor", "middle").attr("font-size", FS_AXIS).text("Recipient group size");
+
+const items = ORDER.map(n => ({ n, w: 16 + 6 + n.length * 6.4 + 18 }));
+const totalW = d3.sum(items, d => d.w);
+let lx = (W - totalW) / 2;
+items.forEach(it => {
+  svg.append("rect").attr("x", lx).attr("y", legendY - 6).attr("width", 13).attr("height", 11).attr("fill", COLORS[it.n]).attr("stroke", "white").attr("stroke-width", 0.5);
+  svg.append("text").attr("x", lx + 19).attr("y", legendY + 4).attr("font-size", FS_LEG).text(it.n);
+  lx += it.w;
+});
+</script>
+</body>
+</html>

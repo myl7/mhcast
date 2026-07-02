@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fig 3 — Throughput vs GOMR</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #fff; font-family: "Times New Roman", Times, serif; }
+  text { font-family: "Times New Roman", Times, serif; fill: #000; }
+  .katex { font-size: 1em; }
+</style>
+</head>
+<body>
+<div id="chart"></div>
+<script>
+const COLORS = { MHcast:"#F03E3E", AGOMR:"#7048E8", FGOMR:"#0CA678" };
+const SYM = { AGOMR:d3.symbolDiamond };
+const LABEL = { MHcast:"MHcast", AGOMR:"AGOMR (1 group)", FGOMR:"FGOMR (1 group)" };
+const ORDER = ["MHcast", "AGOMR", "FGOMR"];
+const FRAME = "#333", GRID = "#e8e8e8";
+
+const Nexp = [11, 14, 17];
+const xs = [1, 2, 4, 8, 16];
+const mhcast = [
+  [28.4949, 26.9795, 26.5879, 26.8002, 27.4412],
+  [3.77788, 3.79738, 3.75746, 3.76584, 3.75427],
+  [0.481027, 0.479917, 0.479928, 0.480021, 0.479739],
+];
+const agomr = [4.25947, 4.76395, 4.75736, 3.97306, 4.38208];
+const fgomr = [6.48283, 5.601985, 5.63000, 6.39458, 6.21391];
+const ymax = [31, 7.2, 7.2];
+
+const W = 880;
+const plotTop = 26, plotH = 69, plotB = plotTop + plotH;
+const leftM = 50, rightM = 10, Gg = 46;
+const usable = W - leftM - rightM;
+const P = (usable - 2 * Gg) / 3;
+const xLabelY = plotB + 42;
+const legendY = plotB + 58;
+const H = legendY + 12;
+
+const FS_TICK = 14, FS_YTICK = 13, FS_TITLE = 15, FS_AXIS = 14, FS_LEG = 13.5;
+
+const svg = d3.select("#chart").append("svg").attr("width", W).attr("height", H).attr("data-figure", "gomr");
+
+function mathLabel(cx, topY, latex, boxW, fsize) {
+  const html = katex.renderToString(latex, { throwOnError: false });
+  const fo = svg.append("foreignObject").attr("x", cx - boxW / 2).attr("y", topY).attr("width", boxW).attr("height", fsize * 2.1).attr("overflow", "visible");
+  fo.append("xhtml:div").attr("style", `font-size:${fsize}px; width:${boxW}px; text-align:center; line-height:1;`).html(html);
+}
+function spine(x1, y1, x2, y2) {
+  svg.append("line").attr("x1", x1).attr("y1", y1).attr("x2", x2).attr("y2", y2).attr("stroke", FRAME).attr("stroke-width", 0.9);
+}
+function marker(x, y, name) {
+  const c = COLORS[name];
+  if (name === "MHcast") { const r = 3.9; svg.append("path").attr("d", `M${x-r},${y-r}L${x+r},${y+r}M${x-r},${y+r}L${x+r},${y-r}`).attr("stroke", c).attr("stroke-width", 1.6).attr("stroke-linecap", "round").attr("fill", "none").attr("data-series", name); return; }
+  if (name === "FGOMR") { const r = 4.1; svg.append("path").attr("d", `M${x-r},${y}L${x+r},${y}M${x},${y-r}L${x},${y+r}`).attr("stroke", c).attr("stroke-width", 1.6).attr("stroke-linecap", "round").attr("fill", "none").attr("data-series", name); return; }
+  svg.append("path").attr("transform", `translate(${x},${y})`).attr("d", d3.symbol().type(SYM[name]).size(36)()).attr("fill", c).attr("stroke", "white").attr("stroke-width", 0.7).attr("data-series", name);
+}
+function series(xsc, ysc, yv, name) {
+  const ln = d3.line().x((d, k) => xsc(xs[k])).y(d => ysc(d));
+  svg.append("path").datum(yv).attr("d", ln).attr("fill", "none").attr("stroke", COLORS[name]).attr("stroke-width", name === "MHcast" ? 2.0 : 1.5).attr("data-series", name);
+  yv.forEach((d, k) => marker(xsc(xs[k]), ysc(d), name));
+}
+
+for (let i = 0; i < 3; i++) {
+  const x0 = leftM + i * (P + Gg), x1 = x0 + P;
+  const ysc = d3.scaleLinear().domain([0, ymax[i]]).range([plotB, plotTop]);
+  const xsc = d3.scaleLog().base(2).domain([xs[0] / 1.5, xs[4] * 1.5]).range([x0, x1]);
+
+  ysc.ticks(4).forEach(t => {
+    svg.append("line").attr("x1", x0).attr("x2", x1).attr("y1", ysc(t)).attr("y2", ysc(t)).attr("stroke", GRID).attr("stroke-width", 0.6);
+    svg.append("text").attr("x", x0 - 6).attr("y", ysc(t) + 4).attr("text-anchor", "end").attr("font-size", FS_YTICK).text(t);
+  });
+  // vertical alignment gridlines at each point
+  xs.forEach(xv => {
+    svg.append("line").attr("x1", xsc(xv)).attr("x2", xsc(xv)).attr("y1", plotTop).attr("y2", plotB).attr("stroke", GRID).attr("stroke-width", 0.6);
+  });
+
+  spine(x0, plotTop, x0, plotB); spine(x1, plotTop, x1, plotB); spine(x0, plotTop, x1, plotTop); spine(x0, plotB, x1, plotB);
+
+  xs.forEach((xv, k) => { svg.append("line").attr("x1", xsc(xv)).attr("x2", xsc(xv)).attr("y1", plotB).attr("y2", plotB + 4).attr("stroke", FRAME).attr("stroke-width", 0.9); mathLabel(xsc(xv), plotB + 6, `2^{${k}}`, 40, FS_TICK); });
+
+  series(xsc, ysc, agomr, "AGOMR");
+  series(xsc, ysc, fgomr, "FGOMR");
+  series(xsc, ysc, mhcast[i], "MHcast");
+
+  mathLabel((x0 + x1) / 2, plotTop - 22, `N = 2^{${Nexp[i]}}`, 96, FS_TITLE);
+}
+
+const yt = svg.append("g").attr("transform", `translate(13,${(plotTop + plotB) / 2}) rotate(-90)`);
+yt.append("text").attr("text-anchor", "middle").attr("y", -5).attr("font-size", FS_AXIS).text("Throughput");
+yt.append("text").attr("text-anchor", "middle").attr("y", 9).attr("font-size", FS_AXIS).text("(msgs/sec)");
+svg.append("text").attr("x", W / 2).attr("y", xLabelY).attr("text-anchor", "middle").attr("font-size", FS_AXIS).text("Recipient group size");
+
+const items = ORDER.map(n => ({ n, w: 22 + 6 + LABEL[n].length * 6.4 + 18 }));
+const totalW = d3.sum(items, d => d.w);
+let lx = (W - totalW) / 2;
+items.forEach(it => {
+  svg.append("line").attr("x1", lx).attr("x2", lx + 22).attr("y1", legendY).attr("y2", legendY).attr("stroke", COLORS[it.n]).attr("stroke-width", it.n === "MHcast" ? 2.0 : 1.5);
+  marker(lx + 11, legendY, it.n);
+  svg.append("text").attr("x", lx + 28).attr("y", legendY + 4.5).attr("font-size", FS_LEG).text(LABEL[it.n]);
+  lx += it.w;
+});
+</script>
+</body>
+</html>

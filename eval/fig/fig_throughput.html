@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fig 2 — Throughput (all systems, broken axis)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #fff; font-family: "Times New Roman", Times, serif; }
+  text { font-family: "Times New Roman", Times, serif; fill: #000; }
+  .katex { font-size: 1em; }
+</style>
+</head>
+<body>
+<div id="chart"></div>
+<script>
+const COLORS = { MHcast:"#F03E3E", Spectrum:"#1C7ED6", Express:"#2F9E44", Talek:"#F59F00", AGOMR:"#7048E8", FGOMR:"#0CA678" };
+const SYM = { Spectrum:d3.symbolCircle, Express:d3.symbolSquare, Talek:d3.symbolTriangle, AGOMR:d3.symbolDiamond };
+const LABEL = { MHcast:"MHcast", Spectrum:"Spectrum", Express:"Express", Talek:"Talek", AGOMR:"AGOMR (1 group)", FGOMR:"FGOMR (1 group)" };
+const ORDER = ["MHcast", "Spectrum", "Express", "Talek"];
+const FRAME = "#333", GRID = "#e8e8e8";
+
+const Nexp = [11, 14, 17];
+const xsSmall = [1, 2, 4, 8, 16];
+const xsLarge = [
+  [128, 256, 512, 1024, 2048],
+  [1024, 2048, 4096, 8192, 16384],
+  [8192, 16384, 32768, 65536, 131072],
+];
+const mhSmall = [
+  [28.4949, 26.9795, 26.5879, 26.8002, 27.4412],
+  [3.77788, 3.79738, 3.75746, 3.76584, 3.75427],
+  [0.481027, 0.479917, 0.479928, 0.480021, 0.479739],
+];
+const spSmall = [
+  [32.2969, 16.1484, 8.07422, 4.03711, 2.01856],
+  [4.04097, 2.02048, 1.01024, 0.50512, 0.25256],
+  [0.503336, 0.251668, 0.125834, 0.0629170, 0.0314585],
+];
+const exSmall = [
+  [6.14968, 3.07484, 1.53742, 0.76871, 0.384355],
+  [5.84967, 2.92484, 1.46242, 0.73121, 0.365604],
+  [3.39979, 1.69990, 0.84995, 0.42497, 0.212487],
+];
+const tkSmall = [
+  [2.39263, 2.39263, 2.39263, 2.39263, 2.39263],
+  [0.0285111, 0.0285111, 0.0285111, 0.0285111, 0.0285111],
+  [0.000448418, 0.000448418, 0.000448418, 0.000448418, 0.000448418],
+];
+const agomr = [4.25947, 4.76395, 4.75736, 3.97306, 4.38208];
+const fgomr = [6.48283, 5.601985, 5.63000, 6.39458, 6.21391];
+const mhLarge = [
+  [36.608278, 35.167111, 35.586771, 34.545813, 36.017361].map(v => 1000 / v),
+  [263.152232, 263.46868, 263.407839, 262.761382, 264.484196].map(v => 1000 / v),
+  [2.082698943, 2.079641115, 2.081890343, 2.07949364, 2.081169384].map(v => 1 / v),
+];
+const ymax = [34, 6.4, 3.7];
+
+const W = 880;
+const plotTop = 26, plotH = 92, plotB = plotTop + plotH;
+const leftM = 50, rightM = 10;
+const Gg = 46, Gb = 13;
+const usable = W - leftM - rightM;
+const P = (usable - 2 * Gg - 3 * Gb) / 3;
+const WL = 0.75 * P, WR = 0.25 * P;
+const xLabelY = plotB + 42;
+const legendY = plotB + 58;
+const H = legendY + 12;
+
+const FS_TICK = 14, FS_YTICK = 13, FS_TITLE = 15, FS_AXIS = 14, FS_LEG = 13.5;
+
+const svg = d3.select("#chart").append("svg").attr("width", W).attr("height", H).attr("data-figure", "throughput");
+
+function mathLabel(cx, topY, latex, boxW, fsize) {
+  const html = katex.renderToString(latex, { throwOnError: false });
+  const fo = svg.append("foreignObject").attr("x", cx - boxW / 2).attr("y", topY).attr("width", boxW).attr("height", fsize * 2.1).attr("overflow", "visible");
+  fo.append("xhtml:div").attr("style", `font-size:${fsize}px; width:${boxW}px; text-align:center; line-height:1;`).html(html);
+}
+function spine(x1, y1, x2, y2) {
+  svg.append("line").attr("x1", x1).attr("y1", y1).attr("x2", x2).attr("y2", y2).attr("stroke", FRAME).attr("stroke-width", 0.9);
+}
+function wavy(x, yb) {
+  const n = 40, amp = 1.9, ext = 6; let d = "";
+  for (let k = 0; k <= n; k++) { const tt = k / n, yy = yb - ext + 2 * ext * tt, xx = x + amp * Math.sin(tt * Math.PI * 4); d += (k === 0 ? "M" : "L") + xx.toFixed(2) + "," + yy.toFixed(2); }
+  svg.append("path").attr("d", d).attr("fill", "none").attr("stroke", FRAME).attr("stroke-width", 1.0);
+}
+function marker(x, y, name) {
+  const c = COLORS[name];
+  if (name === "MHcast") { const r = 3.9; svg.append("path").attr("d", `M${x-r},${y-r}L${x+r},${y+r}M${x-r},${y+r}L${x+r},${y-r}`).attr("stroke", c).attr("stroke-width", 1.6).attr("stroke-linecap", "round").attr("fill", "none").attr("data-series", name); return; }
+  if (name === "FGOMR") { const r = 4.1; svg.append("path").attr("d", `M${x-r},${y}L${x+r},${y}M${x},${y-r}L${x},${y+r}`).attr("stroke", c).attr("stroke-width", 1.6).attr("stroke-linecap", "round").attr("fill", "none").attr("data-series", name); return; }
+  svg.append("path").attr("transform", `translate(${x},${y})`).attr("d", d3.symbol().type(SYM[name]).size(name === "AGOMR" ? 36 : 32)()).attr("fill", c).attr("stroke", "white").attr("stroke-width", 0.7).attr("data-series", name);
+}
+function series(xsc, ysc, xv, yv, name) {
+  const ln = d3.line().x((d, k) => xsc(xv[k])).y(d => ysc(d));
+  svg.append("path").datum(yv).attr("d", ln).attr("fill", "none").attr("stroke", COLORS[name]).attr("stroke-width", name === "MHcast" ? 2.0 : 1.5).attr("data-series", name);
+  yv.forEach((d, k) => marker(xsc(xv[k]), ysc(d), name));
+}
+
+for (let i = 0; i < 3; i++) {
+  const x0 = leftM + i * (P + Gb + Gg);
+  const xLend = x0 + WL, xRstart = xLend + Gb, xRend = xRstart + WR;
+  const ysc = d3.scaleLinear().domain([0, ymax[i]]).range([plotB, plotTop]);
+  const xL = d3.scaleLog().base(2).domain([xsSmall[0] / 1.5, xsSmall[4] * 1.5]).range([x0, xLend]);
+  const lg = xsLarge[i];
+  const xR = d3.scaleLog().base(2).domain([lg[0] / 1.6, lg[4] * 1.6]).range([xRstart, xRend]);
+
+  ysc.ticks(4).forEach(t => {
+    svg.append("line").attr("x1", x0).attr("x2", xLend).attr("y1", ysc(t)).attr("y2", ysc(t)).attr("stroke", GRID).attr("stroke-width", 0.6);
+    svg.append("line").attr("x1", xRstart).attr("x2", xRend).attr("y1", ysc(t)).attr("y2", ysc(t)).attr("stroke", GRID).attr("stroke-width", 0.6);
+    svg.append("text").attr("x", x0 - 6).attr("y", ysc(t) + 4).attr("text-anchor", "end").attr("font-size", FS_YTICK).text(t);
+  });
+
+  // vertical alignment gridlines at each point: all 5 on the left segment, 3 on the right
+  xsSmall.forEach(xv => {
+    svg.append("line").attr("x1", xL(xv)).attr("x2", xL(xv)).attr("y1", plotTop).attr("y2", plotB).attr("stroke", GRID).attr("stroke-width", 0.6);
+  });
+  [lg[0], lg[2], lg[4]].forEach(xv => {
+    svg.append("line").attr("x1", xR(xv)).attr("x2", xR(xv)).attr("y1", plotTop).attr("y2", plotB).attr("stroke", GRID).attr("stroke-width", 0.6);
+  });
+
+  spine(x0, plotTop, x0, plotB); spine(x0, plotTop, xLend, plotTop); spine(x0, plotB, xLend, plotB);
+  spine(xRend, plotTop, xRend, plotB); spine(xRstart, plotTop, xRend, plotTop); spine(xRstart, plotB, xRend, plotB);
+
+  xsSmall.forEach((xv, k) => { svg.append("line").attr("x1", xL(xv)).attr("x2", xL(xv)).attr("y1", plotB).attr("y2", plotB + 4).attr("stroke", FRAME).attr("stroke-width", 0.9); mathLabel(xL(xv), plotB + 6, `2^{${k}}`, 40, FS_TICK); });
+  [lg[0], lg[2], lg[4]].forEach(xv => { svg.append("line").attr("x1", xR(xv)).attr("x2", xR(xv)).attr("y1", plotB).attr("y2", plotB + 4).attr("stroke", FRAME).attr("stroke-width", 0.9); mathLabel(xR(xv), plotB + 6, `2^{${Math.round(Math.log2(xv))}}`, 40, FS_TICK); });
+
+  // all comparison systems on the small-group (left) part; MHcast on top
+  series(xL, ysc, xsSmall, spSmall[i], "Spectrum");
+  series(xL, ysc, xsSmall, exSmall[i], "Express");
+  series(xL, ysc, xsSmall, tkSmall[i], "Talek");
+  series(xL, ysc, xsSmall, mhSmall[i], "MHcast");
+  // large groups: MHcast only
+  series(xR, ysc, lg, mhLarge[i], "MHcast");
+
+  wavy(xLend, plotB); wavy(xRstart, plotB);
+  mathLabel((x0 + xRend) / 2, plotTop - 22, `N = 2^{${Nexp[i]}}`, 96, FS_TITLE);
+}
+
+const yt = svg.append("g").attr("transform", `translate(13,${(plotTop + plotB) / 2}) rotate(-90)`);
+yt.append("text").attr("text-anchor", "middle").attr("y", -5).attr("font-size", FS_AXIS).text("Throughput");
+yt.append("text").attr("text-anchor", "middle").attr("y", 9).attr("font-size", FS_AXIS).text("(msgs/sec)");
+svg.append("text").attr("x", W / 2).attr("y", xLabelY).attr("text-anchor", "middle").attr("font-size", FS_AXIS).text("Recipient group size");
+
+const items = ORDER.map(n => ({ n, w: 22 + 6 + LABEL[n].length * 6.4 + 18 }));
+const totalW = d3.sum(items, d => d.w);
+let lx = (W - totalW) / 2;
+items.forEach(it => {
+  svg.append("line").attr("x1", lx).attr("x2", lx + 22).attr("y1", legendY).attr("y2", legendY).attr("stroke", COLORS[it.n]).attr("stroke-width", it.n === "MHcast" ? 2.0 : 1.5);
+  marker(lx + 11, legendY, it.n);
+  svg.append("text").attr("x", lx + 28).attr("y", legendY + 4.5).attr("font-size", FS_LEG).text(LABEL[it.n]);
+  lx += it.w;
+});
+</script>
+</body>
+</html>

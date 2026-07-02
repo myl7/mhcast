@@ -1,0 +1,15 @@
+Benchmark began with N=1
+Benchmark called close w N=1
+goos: linux
+goarch: amd64
+pkg: github.com/privacylab/talek/server
+cpu: AMD EPYC 7R32
+BenchmarkShard-16    	Benchmark began with N=100
+Benchmark called close w N=100
+Benchmark began with N=396
+Benchmark called close w N=396
+Benchmark began with N=481
+Benchmark called close w N=481
+     481	 176060361 ns/op	   0.00 MB/s
+PASS
+ok  	github.com/privacylab/talek/server	162.949s
